@@ -1,13 +1,12 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
-  Users, Calendar as CalendarIcon, Package, DollarSign, LayoutDashboard, Menu, X, Plus, FileText, Settings, Camera, CheckCircle, Edit2, LogOut, ChevronRight, ChevronLeft, Trash2, ShoppingCart, BookOpen, Feather, MapPin, TrendingUp, Bell, ShoppingBag, Send, RefreshCcw, Database, Shield, AlertCircle, Download, ShieldAlert, Heart, Compass, Clipboard, MessageCircle, List
+  Users, Calendar as CalendarIcon, Package, DollarSign, LayoutDashboard, Menu, X, Plus, FileText, Settings, Camera, CheckCircle, Edit2, LogOut, ChevronRight, ChevronLeft, Trash2, ShoppingCart, BookOpen, Feather, MapPin, Bell, ShoppingBag, Send, RefreshCcw, Database, Shield, AlertCircle, Download, ShieldAlert, Heart, Compass, Clipboard, MessageCircle, List
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
 import { supabase } from './supabaseClient';
-import { Member, Product, Event, Transaction, MemberStatus, Role, SystemMessage, EventConsumption, PaymentStatus, PaymentMethod, Location, TransactionCategory, RoleDefinition, UserMessage, FinancialMonthData, RolePermissions } from './types';
+import { Member, Product, Event, Transaction, MemberStatus, Role, SystemMessage, EventConsumption, PaymentMethod, Location, TransactionCategory, RoleDefinition, UserMessage, FinancialMonthData, RolePermissions } from './types';
 import { INITIAL_MEMBERS, INITIAL_INVENTORY, INITIAL_EVENTS, INITIAL_TRANSACTIONS, INITIAL_SYSTEM_MESSAGES, INITIAL_USER_MESSAGES, DOC_STATUTES, DOC_COMMITMENT, DOC_PHILOSOPHY, TUTORIAL_STEPS, GUEST_FEE, SOC_FEE, INITIAL_LOCATIONS, INITIAL_ROLE_DEFINITIONS } from './constants';
 
 // --- COMPONENTS ---
@@ -256,7 +255,7 @@ export default function App() {
 
   // --- ACTIONS ---
 
-  const can = (permission: keyof import('./types').RolePermissions) => {
+  const can = (permission: keyof RolePermissions) => {
     if (!currentUser) return false;
     const roleDef = roleDefinitions.find(r => r.id === currentUser.role);
     return roleDef ? roleDef.permissions[permission] : false;
@@ -626,7 +625,7 @@ export default function App() {
   const handleFinishAudit = async () => {
     if (!window.confirm("¿Finalizar auditoría?")) return;
     let totalVarianceValue = 0;
-    const updates = [];
+    const updates: Product[] = [];
     
     const updatedInventory = inventory.map(p => {
       if (!p.isActive) return p;

@@ -1,11 +1,12 @@
-
 import { createClient } from '@supabase/supabase-js';
 
 // Safe access to environment variables to prevent crashes in environments
-// where import.meta.env might be undefined.
+// where import.meta.env might be undefined or typed incorrectly.
 const getEnvVar = (key: string) => {
   try {
-    return import.meta?.env?.[key] || '';
+    // Cast to any to avoid TypeScript error Property 'env' does not exist on type 'ImportMeta'
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (import.meta as any).env?.[key] || '';
   } catch (e) {
     return '';
   }
