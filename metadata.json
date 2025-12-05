@@ -1,0 +1,5 @@
+{
+  "name": "GastroSoc Manager",
+  "description": "Sistema integral de gestión para sociedades gastronómicas con control de inventario, socios, eventos y finanzas.",
+  "requestFramePermissions": []
+}
