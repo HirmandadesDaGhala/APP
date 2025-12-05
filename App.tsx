@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Users, Calendar as CalendarIcon, Package, DollarSign, LayoutDashboard, Menu, X, Plus, FileText, Settings, Camera, CheckCircle, Edit2, LogOut, ChevronRight, ChevronLeft, Trash2, ShoppingCart, BookOpen, Feather, MapPin, Bell, ShoppingBag, Send, RefreshCcw, Database, Shield, AlertCircle, Download, ShieldAlert, Heart, Compass, Clipboard, MessageCircle, List
+  Users, Calendar as CalendarIcon, Package, DollarSign, LayoutDashboard, Menu, X, Plus, FileText, Settings, Camera, CheckCircle, Edit2, LogOut, ChevronRight, ChevronLeft, Trash2, ShoppingCart, BookOpen, Feather, MapPin, Bell, ShoppingBag, Send, RefreshCcw, Database, Shield, AlertCircle, Download, ShieldAlert, Heart, Compass, Clipboard, MessageCircle, List, CloudLightning
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
@@ -186,7 +186,9 @@ export default function App() {
   // --- SUPABASE DATA FETCHING ---
   
   const fetchData = async () => {
-    setLoading(true);
+    // Only set loading on initial fetch, not on realtime updates
+    if (members.length === 0) setLoading(true);
+    
     // Explicitly handle null supabase (Demo Mode)
     if (!supabase) {
        console.log("No Supabase client available. Entering Demo Mode.");
@@ -227,23 +229,20 @@ export default function App() {
       if (sysMsgs) setSystemMessages(sysMsgs);
       if (usrMsgs) setUserMessages(usrMsgs);
       
-      // If table exists but is empty (new DB), warn or maybe init?
-      if (mems && mems.length === 0) {
-        console.log("Database connected but empty.");
-      }
-
     } catch (error) {
       console.error("Critical Data Fetch Error:", error);
-      // Fallback to demo mode on crash to avoid white screen
-      setUseDemoMode(true);
-      setMembers(INITIAL_MEMBERS);
-      setInventory(INITIAL_INVENTORY);
-      setEvents(INITIAL_EVENTS);
-      setTransactions(INITIAL_TRANSACTIONS);
-      setLocations(INITIAL_LOCATIONS);
-      setRoleDefinitions(INITIAL_ROLE_DEFINITIONS);
-      setSystemMessages(INITIAL_SYSTEM_MESSAGES);
-      setUserMessages(INITIAL_USER_MESSAGES);
+      // Fallback to demo mode on crash
+      if (members.length === 0) {
+        setUseDemoMode(true);
+        setMembers(INITIAL_MEMBERS);
+        setInventory(INITIAL_INVENTORY);
+        setEvents(INITIAL_EVENTS);
+        setTransactions(INITIAL_TRANSACTIONS);
+        setLocations(INITIAL_LOCATIONS);
+        setRoleDefinitions(INITIAL_ROLE_DEFINITIONS);
+        setSystemMessages(INITIAL_SYSTEM_MESSAGES);
+        setUserMessages(INITIAL_USER_MESSAGES);
+      }
     } finally {
       setLoading(false);
     }
@@ -251,6 +250,24 @@ export default function App() {
 
   useEffect(() => {
     fetchData();
+
+    // SETUP REALTIME SUBSCRIPTION
+    if (supabase) {
+      const channel = supabase.channel('db_changes')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public' },
+          (payload) => {
+            console.log('Change received!', payload);
+            fetchData(); // Refresh data on any change
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
   }, []);
 
   // --- ACTIONS ---
@@ -381,7 +398,7 @@ export default function App() {
     if (supabase) {
        const { error } = await supabase.from('locations').upsert(editingLocation);
        if (!error) {
-          fetchData();
+          // Realtime will fetch data
           setIsLocationModalOpen(false);
           setEditingLocation(null);
        } else {
@@ -403,7 +420,7 @@ export default function App() {
     if (confirm("¿Borrar esta ubicación?")) {
       if (supabase) {
          await supabase.from('locations').delete().eq('id', id);
-         fetchData();
+         // Realtime fetch
       } else {
          setLocations(locations.filter(l => l.id !== id));
       }
@@ -415,7 +432,7 @@ export default function App() {
     if (!editingRole) return;
     if (supabase) {
        await supabase.from('roleDefinitions').upsert(editingRole);
-       fetchData();
+       // Realtime fetch
     } else {
        setRoleDefinitions(roleDefinitions.map(r => r.id === editingRole.id ? editingRole : r));
     }
@@ -440,6 +457,7 @@ export default function App() {
     if (supabase) {
        const { error } = await supabase.from('userMessages').insert(newMessage);
        if (!error) {
+          // Optimistic update
           setUserMessages([...userMessages, newMessage]);
           setChatInput('');
        }
@@ -535,11 +553,7 @@ export default function App() {
     if (supabase) {
        const { error } = await supabase.from('events').upsert(updatedEvent);
        if (!error) {
-          if (events.find(ev => ev.id === updatedEvent.id)) {
-            setEvents(events.map(ev => ev.id === updatedEvent.id ? updatedEvent : ev));
-          } else {
-            setEvents([...events, updatedEvent]);
-          }
+          // Realtime will handle update
           setIsEventModalOpen(false);
           setEditingEvent(null);
        } else {
@@ -563,11 +577,6 @@ export default function App() {
     if (supabase) {
        const { error } = await supabase.from('inventory').upsert(editingProduct);
        if (!error) {
-          if (inventory.find(p => p.id === editingProduct.id)) {
-             setInventory(inventory.map(p => p.id === editingProduct.id ? editingProduct : p));
-          } else {
-             setInventory([...inventory, editingProduct]);
-          }
           setIsProductModalOpen(false);
           setEditingProduct(null);
        } else {
@@ -721,6 +730,7 @@ export default function App() {
     
     if (supabase) {
        await supabase.from('events').upsert(managingConsumptionsFor);
+       // Optimization: Only update products in the event
        for (const prod of inventory) {
           await supabase.from('inventory').update({ currentStock: prod.currentStock }).eq('id', prod.id);
        }
@@ -873,11 +883,6 @@ export default function App() {
     if (supabase) {
        const { error } = await supabase.from('transactions').upsert(editingTransaction);
        if (!error) {
-          if (transactions.find(t => t.id === editingTransaction.id)) {
-            setTransactions(transactions.map(t => t.id === editingTransaction.id ? editingTransaction : t));
-          } else {
-            setTransactions([...transactions, editingTransaction]);
-          }
           setIsTransactionModalOpen(false);
           setEditingTransaction(null);
        } else {
@@ -1459,6 +1464,15 @@ export default function App() {
         </nav>
 
         <div className="p-4 border-t border-emerald-800">
+           {!useDemoMode ? (
+              <div className="flex items-center gap-2 mb-2 text-xs text-emerald-300 px-2">
+                 <CloudLightning className="w-3 h-3 text-emerald-400 animate-pulse"/> En línea
+              </div>
+           ) : (
+              <div className="flex items-center gap-2 mb-2 text-xs text-yellow-300 px-2">
+                 <AlertCircle className="w-3 h-3"/> Modo Local (Sin Sync)
+              </div>
+           )}
            <div className="flex items-center gap-3 mb-4 cursor-pointer hover:bg-emerald-800 p-2 rounded-lg transition" onClick={() => openEditMember(currentUser)}>
               <img src={currentUser.avatarUrl || `https://ui-avatars.com/api/?name=${currentUser.fullName}&background=random`} className="w-10 h-10 rounded-full bg-emerald-200 object-cover"/>
               <div className="flex-1 overflow-hidden">
