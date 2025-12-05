@@ -252,8 +252,9 @@ export default function App() {
     fetchData();
 
     // SETUP REALTIME SUBSCRIPTION
+    let channel: any;
     if (supabase) {
-      const channel = supabase.channel('db_changes')
+      channel = supabase.channel('db_changes')
         .on(
           'postgres_changes',
           { event: '*', schema: 'public' },
@@ -263,11 +264,13 @@ export default function App() {
           }
         )
         .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
     }
+
+    return () => {
+      if (supabase && channel) {
+        supabase.removeChannel(channel);
+      }
+    };
   }, []);
 
   // --- ACTIONS ---
@@ -338,6 +341,27 @@ export default function App() {
   };
 
   // --- DATA MANAGEMENT ---
+  const handleDownloadBackup = () => {
+    const backupData = {
+      members,
+      inventory,
+      events,
+      transactions,
+      locations,
+      roleDefinitions,
+      systemMessages,
+      userMessages,
+      exportedAt: new Date().toISOString()
+    };
+    const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `hirmandades_backup_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleResetData = async () => {
     if (confirm("¿Estás segura? Esto borrará la base de datos y cargará los datos de ejemplo.")) {
       setLoading(true);
@@ -1204,6 +1228,11 @@ export default function App() {
            </div>
         </div>
         
+        <div className="flex items-center gap-2 mb-4 bg-gray-100 p-2 rounded w-fit">
+           <input type="checkbox" checked={showInactiveProducts} onChange={e => setShowInactiveProducts(e.target.checked)} className="rounded text-emerald-600"/>
+           <span className="text-sm">Mostrar productos inactivos</span>
+        </div>
+
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
            {inventory.filter(p => p.isActive || showInactiveProducts).map(prod => {
               const statusColor = prod.currentStock <= prod.emergencyStock ? 'bg-red-500' : prod.currentStock <= prod.minStock ? 'bg-yellow-500' : 'bg-emerald-500';
@@ -1373,6 +1402,7 @@ export default function App() {
         <Card>
            <h3 className="font-bold mb-4 flex items-center gap-2"><Database className="w-5 h-5 text-gray-400"/> Gestión de Datos</h3>
            <div className="flex gap-4">
+              <button onClick={handleDownloadBackup} className="px-4 py-2 bg-emerald-50 text-emerald-800 rounded hover:bg-emerald-100 text-sm font-bold flex items-center gap-2"><Download className="w-4 h-4"/> Copia de Seguridad Completa (JSON)</button>
               <button onClick={handleResetData} className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50 text-sm">Restaurar Datos de Fábrica</button>
               <button onClick={handleClearData} className="px-4 py-2 border border-red-200 text-red-600 rounded hover:bg-red-50 text-sm">Borrar Base de Datos</button>
            </div>
