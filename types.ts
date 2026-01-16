@@ -14,12 +14,12 @@ export enum Role {
 }
 
 export interface RolePermissions {
-  manage_events: boolean;      // Can create/edit events
-  manage_members: boolean;     // Can create/edit members
-  manage_inventory: boolean;   // Can create products/add stock
-  manage_finance: boolean;     // Can add/edit transactions
-  manage_settings: boolean;    // Can edit roles/locations
-  view_sensitive_data: boolean; // Can see IBANs, specific finance details
+  manage_events: boolean;
+  manage_members: boolean;
+  manage_inventory: boolean;
+  manage_finance: boolean;
+  manage_settings: boolean;
+  view_sensitive_data: boolean;
 }
 
 export interface RoleDefinition {
@@ -40,13 +40,13 @@ export interface Member {
   dni: string;
   email: string;
   phone: string;
-  address: string;    // New: Physical Address
-  iban: string;       // New: Bank Account
-  monthlyFee?: number; // New: Custom fee override (optional)
+  address: string;
+  iban: string;
+  monthlyFee?: number;
   status: MemberStatus;
   joinDate: string;
   role: Role;
-  pin: string;        // 4-digit PIN for login
+  pin: string;
   avatarUrl?: string; 
   allergies?: string; 
   notes?: string;
@@ -63,22 +63,38 @@ export interface Product {
   category: 'Bebida' | 'Alimento' | 'Limpieza' | 'Otros';
   unit: string;
   currentStock: number;
-  minStock: number;       // Stock Seguridad
-  emergencyStock: number; // Stock Emergencia
+  minStock: number;
+  emergencyStock: number;
   costPrice: number;
   salePrice: number;
   provider: string;
-  isActive: boolean; // TRUE = Available, FALSE = Discontinued/Hidden
+  isActive: boolean;
+  lastAuditDate?: string;
+}
+
+export interface InventoryAudit {
+  id: string;
+  date: string;
+  memberId: string;
+  memberName: string;
+  items: {
+    productId: string;
+    productName: string;
+    expectedStock: number;
+    actualStock: number;
+    discrepancy: number;
+  }[];
+  notes?: string;
 }
 
 export interface EventConsumption {
   id: string;
-  type: 'product' | 'custom' | 'service'; // Added 'service'
-  productId?: string; // If it is from inventory
-  name: string;       // Name of product or custom concept
+  type: 'product' | 'custom' | 'service';
+  productId?: string;
+  name: string;
   quantity: number;
-  unitCost: number;   // Cost per unit at moment of consumption
-  totalCost: number;  // quantity * unitCost
+  unitCost: number;
+  totalCost: number;
 }
 
 export type PaymentMethod = 'Efectivo' | 'Transferencia' | 'N/A';
@@ -89,16 +105,16 @@ export interface Event {
   title: string;
   date: string;
   organizerId: string;
-  attendeeIds: string[]; // List of User IDs attending (for permission filtering)
-  attendees: number;     // Total count
-  guestCount: number;    // Non-members (pay extra fee)
-  zoneId: string;        // Linked to Location
+  attendeeIds: string[];
+  attendees: number;
+  guestCount: number;
+  zoneId: string;
   status: 'Programada' | 'Finalizada' | 'Cancelada';
   consumptions: EventConsumption[];
   totalCost: number;
   paymentStatus: PaymentStatus;
   paymentMethod: PaymentMethod;
-  settledBy?: string;    // ID of the user who processed the payment
+  settledBy?: string;
   settlementDate?: string;
 }
 
@@ -110,7 +126,7 @@ export type TransactionCategory =
   | 'Alquiler' 
   | 'Suministros (Luz/Agua)' 
   | 'Mantenimiento' 
-  | 'Servicios Externos' // New: Staff/Cleaning costs
+  | 'Servicios Externos'
   | 'Pérdidas/Mermas'    
   | 'Ajuste Inventario'  
   | 'Otros';
@@ -119,11 +135,11 @@ export interface Transaction {
   id: string;
   date: string;
   description: string;
-  amount: number; // Positive for income, negative for expense
+  amount: number;
   category: TransactionCategory;
   relatedEventId?: string;
-  relatedMemberId?: string; // If it's a direct purchase or fee
-  isReconciled: boolean; // Checked against bank statement
+  relatedMemberId?: string;
+  isReconciled: boolean;
   paymentMethod: PaymentMethod;
 }
 
@@ -134,13 +150,13 @@ export interface SystemMessage {
   date: string;
   authorId: string;
   priority: 'high' | 'normal';
-  readBy: string[]; // List of user IDs who have closed the popup
+  readBy: string[];
 }
 
 export interface UserMessage {
   id: string;
   senderId: string;
-  recipientId?: string; // If undefined, it is a PUBLIC message (Wall)
+  recipientId?: string;
   content: string;
   timestamp: string;
   isRead: boolean;
@@ -151,4 +167,10 @@ export interface FinancialMonthData {
   ingresos: number;
   gastos: number;
   balance: number;
+}
+
+export interface WorkspaceSettings {
+  googleSheetUrl: string;
+  autoSync: boolean;
+  lastSync?: string;
 }
