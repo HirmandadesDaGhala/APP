@@ -1,5 +1,5 @@
 
-import { Member, Product, Event, Transaction, MemberStatus, Role, SystemMessage, Location, RoleDefinition, UserMessage } from './types';
+import { Member, Product, Event, Transaction, MemberStatus, Role, Location, RoleDefinition, UserMessage } from './types';
 
 export const SOC_FEE = 30.00;
 export const GUEST_FEE = 3.00;
@@ -45,21 +45,21 @@ const createMember = (id: string, name: string, dni: string, phone: string, emai
   dni: dni,
   email: email,
   phone: phone,
-  address: '',
-  iban: '',
+  address: 'Sede Social Ghala',
+  iban: 'ES91 1234 5678 9012 3456 7890',
   status: MemberStatus.ACTIVE,
   joinDate: new Date().toISOString().split('T')[0],
   role: role,
-  pin: phone.slice(-4),
+  pin: phone.slice(-4), // REGLA: Últimos 4 dígitos del móvil
   avatarUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff`,
-  documentsSigned: { statutes: true, paymentCommitment: false, date: '' }
+  documentsSigned: { statutes: true, paymentCommitment: true, date: '2025-01-01' }
 });
 
 export const INITIAL_MEMBERS: Member[] = [
-  // Actualizado PIN a 0628 para el acceso maestro
   createMember('1', 'Anxo Bernárdez (Presidente)', '12345678A', '600000628', 'anxo@ghala.org', Role.PRESIDENT),
   createMember('2', 'Sabela Rey (Tesourería)', '87654321B', '600002222', 'sabela@ghala.org', Role.TREASURER),
   createMember('3', 'Iago Montes', '11223344C', '600003333', 'iago@ghala.org', Role.MEMBER),
+  createMember('4', 'Socia Demo 1', '44332211D', '600004444', 'demo1@ghala.org', Role.MEMBER),
 ];
 
 export const INITIAL_INVENTORY: Product[] = [
@@ -76,6 +76,7 @@ export const INITIAL_EVENTS: Event[] = [
 export const INITIAL_TRANSACTIONS: Transaction[] = [
   { id: 'TR-001', date: '2025-01-01', description: 'Fondo Inicial Irmandade', amount: 1500.0, category: 'Otros', isReconciled: true, paymentMethod: 'Efectivo' },
   { id: 'TR-002', date: '2025-01-15', description: 'Compra Bebidas Distribuidor', amount: -250.0, category: 'Compra Insumos', isReconciled: true, paymentMethod: 'Transferencia' },
+  { id: 'TR-003', date: '2025-02-01', description: 'Recibo Luz Enero', amount: -85.20, category: 'Suministros (Luz/Agua/Internet)', isReconciled: false, paymentMethod: 'Transferencia' },
 ];
 
 export const INITIAL_USER_MESSAGES: UserMessage[] = [

@@ -72,21 +72,6 @@ export interface Product {
   lastAuditDate?: string;
 }
 
-export interface InventoryAudit {
-  id: string;
-  date: string;
-  memberId: string;
-  memberName: string;
-  items: {
-    productId: string;
-    productName: string;
-    expectedStock: number;
-    actualStock: number;
-    discrepancy: number;
-  }[];
-  notes?: string;
-}
-
 export interface EventConsumption {
   id: string;
   type: 'product' | 'custom' | 'service';
@@ -97,7 +82,7 @@ export interface EventConsumption {
   totalCost: number;
 }
 
-export type PaymentMethod = 'Efectivo' | 'Transferencia' | 'N/A';
+export type PaymentMethod = 'Efectivo' | 'Transferencia' | 'Bizum' | 'N/A';
 export type PaymentStatus = 'Pendiente' | 'Pagada';
 
 export interface Event {
@@ -123,54 +108,27 @@ export type TransactionCategory =
   | 'Evento' 
   | 'Compra Insumos' 
   | 'Venta Directa Economato'
-  | 'Alquiler' 
-  | 'Suministros (Luz/Agua)' 
+  | 'Suministros (Luz/Agua/Internet)' 
   | 'Mantenimiento' 
-  | 'Servicios Externos'
-  | 'Pérdidas/Mermas'    
-  | 'Ajuste Inventario'  
+  | 'Impuestos'
   | 'Otros';
 
 export interface Transaction {
   id: string;
   date: string;
   description: string;
-  amount: number;
+  amount: number; // Positivo para ingresos, Negativo para gastos
   category: TransactionCategory;
   relatedEventId?: string;
   relatedMemberId?: string;
-  isReconciled: boolean;
+  isReconciled: boolean; // Si ha sido comprobado en banco/caja
   paymentMethod: PaymentMethod;
-}
-
-export interface SystemMessage {
-  id: string;
-  title: string;
-  content: string;
-  date: string;
-  authorId: string;
-  priority: 'high' | 'normal';
-  readBy: string[];
 }
 
 export interface UserMessage {
   id: string;
   senderId: string;
-  recipientId?: string;
   content: string;
   timestamp: string;
   isRead: boolean;
-}
-
-export interface FinancialMonthData {
-  name: string;
-  ingresos: number;
-  gastos: number;
-  balance: number;
-}
-
-export interface WorkspaceSettings {
-  googleSheetUrl: string;
-  autoSync: boolean;
-  lastSync?: string;
 }
