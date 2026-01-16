@@ -93,7 +93,7 @@ export default function App() {
   const [aiResponse, setAiResponse] = useState('');
   const [isAiThinking, setIsAiThinking] = useState(false);
 
-  // Persistence Loading (V12 for maximum reliability)
+  // Persistence Loading (V12.1 for maximum reliability)
   useEffect(() => {
     const saved = localStorage.getItem('gastro_soc_v12_stable');
     if (saved) {
@@ -135,7 +135,6 @@ export default function App() {
   }, [currentUser, roleDefinitions]);
 
   const handleLogin = (pin: string) => {
-    // Buscamos al usuario tanto en el estado actual como en los iniciales para asegurar acceso
     const user = members.find(m => m.pin === pin) || INITIAL_MEMBERS.find(m => m.pin === pin);
     if (user) { 
       setCurrentUser(user); 
@@ -163,7 +162,7 @@ export default function App() {
     if (!aiMessage.trim()) return;
     setIsAiThinking(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
       const prompt = `Asistente Irmandades da Ghala. Responde brevemente en Galego: ${aiMessage}.`;
       const response = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: prompt });
       setAiResponse(response.text || "Sen resposta.");
@@ -171,7 +170,7 @@ export default function App() {
     finally { setIsAiThinking(false); setAiMessage(''); }
   };
 
-  // Operations - Inventory (RELIABLE DELETE)
+  // Operations - Inventory
   const saveProduct = () => {
     if (!editingProduct) return;
     setInventory(prev => {
@@ -195,7 +194,7 @@ export default function App() {
     setEditingProduct(null);
   };
 
-  // Operations - Events (RELIABLE DELETE)
+  // Operations - Events
   const saveEvent = (ev: Event) => {
     setEvents(prev => {
       const idx = prev.findIndex(e => e.id === ev.id);
@@ -288,7 +287,7 @@ export default function App() {
           <button type="button" onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="lg:hidden text-emerald-900"><Menu className="w-6 h-6"/></button>
           <div className="flex items-center gap-2 text-emerald-900 font-serif font-bold text-xs">
             <Info className="w-4 h-4 text-emerald-400"/>
-            <span className="hidden sm:inline">Irmandades da Ghala v1.2.1</span>
+            <span className="hidden sm:inline">Irmandades da Ghala v1.2.2</span>
           </div>
           <button type="button" onClick={() => setIsAiOpen(true)} className="p-2.5 bg-emerald-50 text-emerald-600 rounded-2xl hover:bg-emerald-100 transition shadow-sm"><Brain className="w-5 h-5"/></button>
         </header>
@@ -369,7 +368,7 @@ export default function App() {
             <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block">Título da Reserva</label><input className="w-full p-5 bg-gray-50 border-0 rounded-2xl font-bold text-xl" value={editingEvent.title} onChange={e => setEditingEvent({...editingEvent, title: e.target.value})} placeholder="Título do evento" /></div>
             <div className="grid grid-cols-2 gap-4">
               <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block">Data</label><input type="date" className="w-full p-4 bg-gray-50 rounded-2xl border-0" value={editingEvent.date} onChange={e => setEditingEvent({...editingEvent, date: e.target.value})} /></div>
-              <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block">Localización</label><select className="w-full p-4 bg-gray-50 rounded-2xl border-0" value={editingEvent.zoneId} onChange={e => setEditingEvent({...editingEvent, zoneId: e.target.value})} >{locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}</select></div>
+              <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block">Localización</label><select className="w-full p-4 bg-gray-50 rounded-2xl border-0" value={editingEvent.zoneId} onChange={e => setEditingEvent({...editingEvent, zoneId: e.target.value})} >{locations.map((l: Location) => <option key={l.id} value={l.id}>{l.name}</option>)}</select></div>
             </div>
             
             <div className="pt-6 border-t border-gray-100 space-y-6">
@@ -433,7 +432,12 @@ export default function App() {
 
 // --- SUB-COMPONENTS WITH PROPER TYPES ---
 
-const LoginPad: React.FC<{ onLogin: (pin: string) => void; error: string | null }> = ({ onLogin, error }) => {
+interface LoginPadProps {
+  onLogin: (pin: string) => void;
+  error: string | null;
+}
+
+const LoginPad: React.FC<LoginPadProps> = ({ onLogin, error }) => {
   const [pin, setPin] = useState('');
   const keys = ['1','2','3','4','5','6','7','8','9','X','0','OK'];
 
@@ -474,13 +478,15 @@ const LoginPad: React.FC<{ onLogin: (pin: string) => void; error: string | null 
   );
 };
 
-const DashboardView: React.FC<{ 
-  transactions: Transaction[], 
-  events: Event[], 
-  inventory: Product[], 
-  members: Member[], 
-  currentUser: Member 
-}> = ({ transactions, events, inventory, members, currentUser }) => {
+interface DashboardViewProps { 
+  transactions: Transaction[]; 
+  events: Event[]; 
+  inventory: Product[]; 
+  members: Member[]; 
+  currentUser: Member;
+}
+
+const DashboardView: React.FC<DashboardViewProps> = ({ transactions, events, inventory, members, currentUser }) => {
   const balance = transactions.reduce((acc, t) => acc + t.amount, 0);
   const critical = inventory.filter(p => p.currentStock <= p.minStock).length;
   return (
@@ -501,14 +507,16 @@ const DashboardView: React.FC<{
   );
 };
 
-const EventsView: React.FC<{ 
-  events: Event[], 
-  locations: Location[], 
-  currentUser: Member, 
-  setEditingEvent: (e: Event | null) => void, 
-  setIsEventModalOpen: (o: boolean) => void, 
-  setConfirmDeleteEvent: (c: boolean) => void 
-}> = ({ events, locations, currentUser, setEditingEvent, setIsEventModalOpen, setConfirmDeleteEvent }) => (
+interface EventsViewProps { 
+  events: Event[]; 
+  locations: Location[]; 
+  currentUser: Member; 
+  setEditingEvent: (e: Event | null) => void; 
+  setIsEventModalOpen: (o: boolean) => void; 
+  setConfirmDeleteEvent: (c: boolean) => void; 
+}
+
+const EventsView: React.FC<EventsViewProps> = ({ events, locations, currentUser, setEditingEvent, setIsEventModalOpen, setConfirmDeleteEvent }) => (
   <div className="space-y-6 animate-in fade-in duration-500">
     <div className="flex justify-between items-center">
       <h2 className="text-3xl font-serif font-bold text-emerald-900">Reservas</h2>
@@ -530,13 +538,15 @@ const EventsView: React.FC<{
   </div>
 );
 
-const InventoryView: React.FC<{ 
-  inventory: Product[], 
-  canManage: boolean, 
-  setEditingProduct: (p: Product | null) => void, 
-  setIsProductModalOpen: (o: boolean) => void, 
-  setConfirmDeleteProduct: (c: boolean) => void 
-}> = ({ inventory, canManage, setEditingProduct, setIsProductModalOpen, setConfirmDeleteProduct }) => (
+interface InventoryViewProps { 
+  inventory: Product[]; 
+  canManage: boolean; 
+  setEditingProduct: (p: Product | null) => void; 
+  setIsProductModalOpen: (o: boolean) => void; 
+  setConfirmDeleteProduct: (c: boolean) => void; 
+}
+
+const InventoryView: React.FC<InventoryViewProps> = ({ inventory, canManage, setEditingProduct, setIsProductModalOpen, setConfirmDeleteProduct }) => (
   <div className="space-y-6 animate-in fade-in duration-500">
     <div className="flex justify-between items-center">
       <h2 className="text-3xl font-serif font-bold text-emerald-900">Economato</h2>
@@ -556,7 +566,14 @@ const InventoryView: React.FC<{
   </div>
 );
 
-const CommunitySection: React.FC<{ userMessages: UserMessage[]; currentUser: Member; members: Member[]; onSendMessage: (c: string) => void }> = ({ userMessages, currentUser, members, onSendMessage }) => {
+interface CommunitySectionProps { 
+  userMessages: UserMessage[]; 
+  currentUser: Member; 
+  members: Member[]; 
+  onSendMessage: (c: string) => void; 
+}
+
+const CommunitySection: React.FC<CommunitySectionProps> = ({ userMessages, currentUser, members, onSendMessage }) => {
   const [msgInput, setMsgInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [userMessages]);
@@ -589,7 +606,9 @@ const CommunitySection: React.FC<{ userMessages: UserMessage[]; currentUser: Mem
   );
 };
 
-const FinanceView: React.FC<{ transactions: Transaction[] }> = ({ transactions }) => (
+interface FinanceViewProps { transactions: Transaction[] }
+
+const FinanceView: React.FC<FinanceViewProps> = ({ transactions }) => (
   <div className="space-y-6 animate-in slide-in-from-bottom-5 duration-500">
     <h2 className="text-3xl font-serif font-bold text-emerald-900">Contabilidade</h2>
     <Card className="p-0 overflow-hidden shadow-xl border-emerald-50">
@@ -605,12 +624,14 @@ const FinanceView: React.FC<{ transactions: Transaction[] }> = ({ transactions }
   </div>
 );
 
-const MembersView: React.FC<{ 
-  members: Member[], 
-  canManage: boolean, 
-  setEditingMember: (m: Member | null) => void, 
-  setIsMemberModalOpen: (o: boolean) => void 
-}> = ({ members, canManage, setEditingMember, setIsMemberModalOpen }) => (
+interface MembersViewProps { 
+  members: Member[]; 
+  canManage: boolean; 
+  setEditingMember: (m: Member | null) => void; 
+  setIsMemberModalOpen: (o: boolean) => void; 
+}
+
+const MembersView: React.FC<MembersViewProps> = ({ members, canManage, setEditingMember, setIsMemberModalOpen }) => (
   <div className="space-y-6 animate-in fade-in duration-500">
     <h2 className="text-3xl font-serif font-bold text-emerald-900">Socias</h2>
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
