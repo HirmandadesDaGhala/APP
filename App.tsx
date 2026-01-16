@@ -135,7 +135,7 @@ export default function App() {
   }, [currentUser, roleDefinitions]);
 
   const handleLogin = (pin: string) => {
-    // Buscamos al usuario tanto en el estado actual como en los iniciales para asegurar acceso si el storage está corrupto
+    // Buscamos al usuario tanto en el estado actual como en los iniciales para asegurar acceso
     const user = members.find(m => m.pin === pin) || INITIAL_MEMBERS.find(m => m.pin === pin);
     if (user) { 
       setCurrentUser(user); 
@@ -288,7 +288,7 @@ export default function App() {
           <button type="button" onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="lg:hidden text-emerald-900"><Menu className="w-6 h-6"/></button>
           <div className="flex items-center gap-2 text-emerald-900 font-serif font-bold text-xs">
             <Info className="w-4 h-4 text-emerald-400"/>
-            <span className="hidden sm:inline">Irmandades da Ghala v1.2</span>
+            <span className="hidden sm:inline">Irmandades da Ghala v1.2.1</span>
           </div>
           <button type="button" onClick={() => setIsAiOpen(true)} className="p-2.5 bg-emerald-50 text-emerald-600 rounded-2xl hover:bg-emerald-100 transition shadow-sm"><Brain className="w-5 h-5"/></button>
         </header>
@@ -431,7 +431,7 @@ export default function App() {
   );
 }
 
-// --- SUB-COMPONENTS ---
+// --- SUB-COMPONENTS WITH PROPER TYPES ---
 
 const LoginPad: React.FC<{ onLogin: (pin: string) => void; error: string | null }> = ({ onLogin, error }) => {
   const [pin, setPin] = useState('');
@@ -474,7 +474,13 @@ const LoginPad: React.FC<{ onLogin: (pin: string) => void; error: string | null 
   );
 };
 
-const DashboardView = ({ transactions, events, inventory, members, currentUser }) => {
+const DashboardView: React.FC<{ 
+  transactions: Transaction[], 
+  events: Event[], 
+  inventory: Product[], 
+  members: Member[], 
+  currentUser: Member 
+}> = ({ transactions, events, inventory, members, currentUser }) => {
   const balance = transactions.reduce((acc, t) => acc + t.amount, 0);
   const critical = inventory.filter(p => p.currentStock <= p.minStock).length;
   return (
@@ -495,18 +501,25 @@ const DashboardView = ({ transactions, events, inventory, members, currentUser }
   );
 };
 
-const EventsView = ({ events, locations, currentUser, setEditingEvent, setIsEventModalOpen, setConfirmDeleteEvent }) => (
+const EventsView: React.FC<{ 
+  events: Event[], 
+  locations: Location[], 
+  currentUser: Member, 
+  setEditingEvent: (e: Event | null) => void, 
+  setIsEventModalOpen: (o: boolean) => void, 
+  setConfirmDeleteEvent: (c: boolean) => void 
+}> = ({ events, locations, currentUser, setEditingEvent, setIsEventModalOpen, setConfirmDeleteEvent }) => (
   <div className="space-y-6 animate-in fade-in duration-500">
     <div className="flex justify-between items-center">
       <h2 className="text-3xl font-serif font-bold text-emerald-900">Reservas</h2>
       <button type="button" onClick={() => { setEditingEvent({ id: `EV-${Date.now()}`, title: '', date: new Date().toISOString().split('T')[0], organizerId: currentUser.id, attendeeIds: [], attendees: 1, guestCount: 0, zoneId: 'LOC-001', status: 'Programada', consumptions: [], totalCost: 0, paymentStatus: 'Pendiente', paymentMethod: 'Efectivo' }); setConfirmDeleteEvent(false); setIsEventModalOpen(true); }} className="px-6 py-3 bg-emerald-600 text-white rounded-2xl font-bold shadow-xl">Nova Reserva</button>
     </div>
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      {events.slice().reverse().map(e => (
+      {events.slice().reverse().map((e: Event) => (
         <Card key={e.id} onClick={() => { setEditingEvent(e); setConfirmDeleteEvent(false); setIsEventModalOpen(true); }}>
           <div className="flex justify-between items-start mb-4"><Badge color={e.status === 'Programada' ? 'blue' : 'emerald'}>{e.status}</Badge><span className="text-[10px] font-black text-gray-400">{new Date(e.date).toLocaleDateString()}</span></div>
           <h4 className="text-xl font-bold text-emerald-950 mb-2 truncate leading-tight">{e.title || 'Sen título'}</h4>
-          <div className="flex items-center gap-4 text-xs text-gray-600 mb-6"><div className="flex items-center gap-1"><Users className="w-3 h-3"/> {e.attendees}</div><div className="flex items-center gap-1"><MapPin className="w-3 h-3"/> {locations.find(l => l.id === e.zoneId)?.name}</div></div>
+          <div className="flex items-center gap-4 text-xs text-gray-600 mb-6"><div className="flex items-center gap-1"><Users className="w-3 h-3"/> {e.attendees}</div><div className="flex items-center gap-1"><MapPin className="w-3 h-3"/> {locations.find((l: Location) => l.id === e.zoneId)?.name}</div></div>
           <div className="pt-4 border-t border-gray-50 flex justify-between items-center text-emerald-700">
             <p className="font-bold text-lg">{e.totalCost.toFixed(2)}€</p>
             <Edit2 className="w-4 h-4 text-emerald-200"/>
@@ -517,7 +530,13 @@ const EventsView = ({ events, locations, currentUser, setEditingEvent, setIsEven
   </div>
 );
 
-const InventoryView = ({ inventory, canManage, setEditingProduct, setIsProductModalOpen, setConfirmDeleteProduct }) => (
+const InventoryView: React.FC<{ 
+  inventory: Product[], 
+  canManage: boolean, 
+  setEditingProduct: (p: Product | null) => void, 
+  setIsProductModalOpen: (o: boolean) => void, 
+  setConfirmDeleteProduct: (c: boolean) => void 
+}> = ({ inventory, canManage, setEditingProduct, setIsProductModalOpen, setConfirmDeleteProduct }) => (
   <div className="space-y-6 animate-in fade-in duration-500">
     <div className="flex justify-between items-center">
       <h2 className="text-3xl font-serif font-bold text-emerald-900">Economato</h2>
@@ -526,7 +545,7 @@ const InventoryView = ({ inventory, canManage, setEditingProduct, setIsProductMo
       )}
     </div>
     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-      {inventory.map(item => (
+      {inventory.map((item: Product) => (
         <Card key={item.id} className={item.currentStock <= item.minStock ? 'border-red-200 bg-red-50/20' : ''} onClick={() => { setEditingProduct(item); setConfirmDeleteProduct(false); setIsProductModalOpen(true); }}>
           <div className="flex justify-between items-start mb-4"><Badge color={item.category === 'Bebida' ? 'blue' : 'emerald'}>{item.category}</Badge><div className="text-right"><p className="text-[9px] font-bold text-gray-400 uppercase">Stock</p><p className={`font-black ${item.currentStock <= item.minStock ? 'text-red-600' : 'text-emerald-950'}`}>{item.currentStock} uds</p></div></div>
           <h4 className="font-bold text-lg text-emerald-950 truncate mb-4 leading-tight">{item.name}</h4>
@@ -546,8 +565,8 @@ const CommunitySection: React.FC<{ userMessages: UserMessage[]; currentUser: Mem
       <div className="mb-6"><h2 className="text-3xl font-serif font-bold text-emerald-900">Comunidade</h2></div>
       <Card className="flex-1 flex flex-col p-0 overflow-hidden shadow-2xl border-emerald-100 min-h-[500px]">
         <div ref={scrollRef} className="flex-1 p-6 space-y-4 overflow-y-auto bg-emerald-50/10 custom-scrollbar">
-          {userMessages.map(msg => {
-            const sender = members.find(m => m.id === msg.senderId);
+          {userMessages.map((msg: UserMessage) => {
+            const sender = members.find((m: Member) => m.id === msg.senderId);
             const isMe = msg.senderId === currentUser.id;
             return (
               <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} gap-3`}>
@@ -570,14 +589,14 @@ const CommunitySection: React.FC<{ userMessages: UserMessage[]; currentUser: Mem
   );
 };
 
-const FinanceView = ({ transactions }) => (
+const FinanceView: React.FC<{ transactions: Transaction[] }> = ({ transactions }) => (
   <div className="space-y-6 animate-in slide-in-from-bottom-5 duration-500">
     <h2 className="text-3xl font-serif font-bold text-emerald-900">Contabilidade</h2>
     <Card className="p-0 overflow-hidden shadow-xl border-emerald-50">
       <table className="w-full text-left text-sm">
         <thead className="bg-emerald-900 text-[10px] uppercase text-emerald-100 font-bold tracking-widest"><tr><th className="px-6 py-5">Data</th><th className="px-6 py-5">Concepto</th><th className="px-6 py-5 text-right">Contía</th></tr></thead>
         <tbody className="divide-y divide-gray-50">
-          {transactions.slice().reverse().map(t => (
+          {transactions.slice().reverse().map((t: Transaction) => (
             <tr key={t.id} className="hover:bg-gray-50 transition"><td className="px-6 py-4 font-bold text-gray-400">{new Date(t.date).toLocaleDateString()}</td><td className="px-6 py-4 font-bold text-emerald-950">{t.description}</td><td className={`px-6 py-4 text-right font-black ${t.amount >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>{t.amount.toFixed(2)}€</td></tr>
           ))}
         </tbody>
@@ -586,11 +605,16 @@ const FinanceView = ({ transactions }) => (
   </div>
 );
 
-const MembersView = ({ members, canManage, setEditingMember, setIsMemberModalOpen }) => (
+const MembersView: React.FC<{ 
+  members: Member[], 
+  canManage: boolean, 
+  setEditingMember: (m: Member | null) => void, 
+  setIsMemberModalOpen: (o: boolean) => void 
+}> = ({ members, canManage, setEditingMember, setIsMemberModalOpen }) => (
   <div className="space-y-6 animate-in fade-in duration-500">
     <h2 className="text-3xl font-serif font-bold text-emerald-900">Socias</h2>
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      {members.map(m => (
+      {members.map((m: Member) => (
         <Card key={m.id} className="border-2 border-transparent hover:border-emerald-100 transition-all"><div className="flex items-center gap-4"><img src={m.avatarUrl} className="w-14 h-14 rounded-2xl shadow-sm border border-emerald-50" alt="avatar" /><div className="flex-1 truncate"><p className="font-bold text-emerald-950 truncate leading-tight">{m.fullName}</p><p className="text-[10px] text-gray-500 font-black uppercase tracking-tighter mt-1">{m.role}</p></div>{canManage && (<button type="button" onClick={() => { setEditingMember(m); setIsMemberModalOpen(true); }} className="p-2.5 text-gray-400 hover:text-emerald-600 bg-gray-50 rounded-xl transition"><Edit2 className="w-4 h-4"/></button>)}</div></Card>
       ))}
     </div>
