@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
-  Users, Calendar as CalendarIcon, Package, DollarSign, LayoutDashboard, Menu, X, Plus, Edit2, LogOut, Trash2, MapPin, Send, RefreshCcw, Heart, Brain, Info, MessageCircle, AlertTriangle, Check
+  Users, Calendar as CalendarIcon, Package, DollarSign, LayoutDashboard, Menu, X, Plus, Edit2, LogOut, Trash2, MapPin, Send, RefreshCcw, Heart, Brain, Info, MessageCircle, AlertTriangle, Check, ShoppingCart, AlertCircle
 } from 'lucide-react';
 import { 
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area
@@ -21,7 +21,7 @@ const Card: React.FC<{ children: React.ReactNode; className?: string; onClick?: 
   </div>
 );
 
-const Badge: React.FC<{ children: React.ReactNode; color?: 'green' | 'red' | 'yellow' | 'blue' | 'gray' | 'purple' | 'emerald' }> = ({ children, color = 'gray' }) => {
+const Badge: React.FC<{ children: React.ReactNode; color?: 'green' | 'red' | 'yellow' | 'blue' | 'gray' | 'purple' | 'emerald' | 'orange' }> = ({ children, color = 'gray' }) => {
   const colors = {
     green: 'bg-green-100 text-green-800',
     red: 'bg-red-100 text-red-800',
@@ -30,6 +30,7 @@ const Badge: React.FC<{ children: React.ReactNode; color?: 'green' | 'red' | 'ye
     gray: 'bg-gray-100 text-gray-800',
     purple: 'bg-purple-100 text-purple-800',
     emerald: 'bg-emerald-100 text-emerald-800',
+    orange: 'bg-orange-100 text-orange-800',
   };
   return (
     <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${colors[color]}`}>
@@ -93,7 +94,7 @@ export default function App() {
   const [aiResponse, setAiResponse] = useState('');
   const [isAiThinking, setIsAiThinking] = useState(false);
 
-  // Persistence Loading (V12.1 for maximum reliability)
+  // Persistence Loading
   useEffect(() => {
     const saved = localStorage.getItem('gastro_soc_v12_stable');
     if (saved) {
@@ -157,7 +158,6 @@ export default function App() {
     setUserMessages(prev => [...prev, msg]);
   };
 
-  // AI Assistant logic
   const askGemini = async () => {
     if (!aiMessage.trim()) return;
     setIsAiThinking(true);
@@ -170,7 +170,6 @@ export default function App() {
     finally { setIsAiThinking(false); setAiMessage(''); }
   };
 
-  // Operations - Inventory
   const saveProduct = () => {
     if (!editingProduct) return;
     setInventory(prev => {
@@ -187,14 +186,12 @@ export default function App() {
 
   const handleDeleteProductAction = () => {
     if (!editingProduct) return;
-    const idToRemove = editingProduct.id;
-    setInventory(current => current.filter(p => p.id !== idToRemove));
+    setInventory(current => current.filter(p => p.id !== editingProduct.id));
     setIsProductModalOpen(false);
     setConfirmDeleteProduct(false);
     setEditingProduct(null);
   };
 
-  // Operations - Events
   const saveEvent = (ev: Event) => {
     setEvents(prev => {
       const idx = prev.findIndex(e => e.id === ev.id);
@@ -225,12 +222,15 @@ export default function App() {
 
   const handleDeleteEventAction = () => {
     if (!editingEvent) return;
-    const idToRemove = editingEvent.id;
-    setEvents(current => current.filter(e => e.id !== idToRemove));
+    setEvents(current => current.filter(e => e.id !== editingEvent.id));
     setIsEventModalOpen(false);
     setConfirmDeleteEvent(false);
     setEditingEvent(null);
   };
+
+  // Lógica de Stock Crítico para Eventos
+  const criticalStockItems = inventory.filter(p => p.currentStock <= p.minStock);
+  const emergencyStockItems = inventory.filter(p => p.currentStock <= p.emergencyStock);
 
   if (loading) return <div className="min-h-screen bg-emerald-950 flex items-center justify-center text-white font-serif text-2xl animate-pulse">Cargando Irmandades...</div>;
 
@@ -285,9 +285,12 @@ export default function App() {
       <main className="flex-1 flex flex-col h-screen overflow-hidden">
         <header className="h-20 bg-white/80 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-8 z-30">
           <button type="button" onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="lg:hidden text-emerald-900"><Menu className="w-6 h-6"/></button>
-          <div className="flex items-center gap-2 text-emerald-900 font-serif font-bold text-xs">
+          <div className="flex items-center gap-4 text-emerald-900 font-serif font-bold text-xs">
             <Info className="w-4 h-4 text-emerald-400"/>
-            <span className="hidden sm:inline">Irmandades da Ghala v1.2.2</span>
+            <span className="hidden sm:inline">Irmandades da Ghala v1.3.0</span>
+            {emergencyStockItems.length > 0 && (
+              <Badge color="red">🚨 ALERTA ECONOMATO: {emergencyStockItems.length}</Badge>
+            )}
           </div>
           <button type="button" onClick={() => setIsAiOpen(true)} className="p-2.5 bg-emerald-50 text-emerald-600 rounded-2xl hover:bg-emerald-100 transition shadow-sm"><Brain className="w-5 h-5"/></button>
         </header>
@@ -324,6 +327,8 @@ export default function App() {
               <div className="col-span-2"><label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block">Nome do Producto</label><input className="w-full p-4 bg-gray-50 rounded-2xl font-bold border-0 focus:ring-2 focus:ring-emerald-500" value={editingProduct.name} onChange={e => setEditingProduct({...editingProduct, name: e.target.value})} /></div>
               <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block">Stock Actual</label><input type="number" className="w-full p-4 bg-gray-50 rounded-2xl border-0" value={editingProduct.currentStock} onChange={e => setEditingProduct({...editingProduct, currentStock: parseFloat(e.target.value)})} /></div>
               <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block">Prezo Venta (€)</label><input type="number" step="0.01" className="w-full p-4 bg-emerald-50 rounded-2xl font-bold border-0" value={editingProduct.salePrice} onChange={e => setEditingProduct({...editingProduct, salePrice: parseFloat(e.target.value)})} /></div>
+              <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block">Stock Mínimo</label><input type="number" className="w-full p-4 bg-gray-50 rounded-2xl border-0" value={editingProduct.minStock} onChange={e => setEditingProduct({...editingProduct, minStock: parseInt(e.target.value)})} /></div>
+              <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block">Stock Emerxencia</label><input type="number" className="w-full p-4 bg-red-50 text-red-600 rounded-2xl border-0" value={editingProduct.emergencyStock} onChange={e => setEditingProduct({...editingProduct, emergencyStock: parseInt(e.target.value)})} /></div>
             </div>
             
             <div className="pt-4 space-y-3">
@@ -355,7 +360,7 @@ export default function App() {
         )}
       </Modal>
 
-      {/* MODAL EVENTO */}
+      {/* MODAL EVENTO CON ALERTA DE STOCK */}
       <Modal 
         isOpen={isEventModalOpen} 
         onClose={() => { setIsEventModalOpen(false); setConfirmDeleteEvent(false); }} 
@@ -365,6 +370,33 @@ export default function App() {
       >
         {editingEvent && (
           <div className="space-y-8">
+            {/* SECCIÓN DE ALERTA DE COMPRA - NUEVA */}
+            {criticalStockItems.length > 0 && (
+              <div className="bg-orange-50 border border-orange-200 rounded-2xl p-5 animate-in slide-in-from-top-2 duration-500">
+                <div className="flex items-start gap-4">
+                  <div className="p-2 bg-orange-100 rounded-xl">
+                    <ShoppingCart className="w-5 h-5 text-orange-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-orange-950 mb-1">Aviso para o Organizador:</p>
+                    <p className="text-xs text-orange-800 leading-relaxed mb-3">
+                      Detectouse stock baixo nos seguintes productos necesarios para o evento. Por favor, <b>asegúrate de mercalos</b> antes da data reservada:
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {criticalStockItems.map(p => (
+                        <div key={p.id} className="flex items-center justify-between bg-white/50 p-2 rounded-lg border border-orange-100">
+                          <span className="text-[10px] font-bold truncate pr-2">{p.name}</span>
+                          <Badge color={p.currentStock <= p.emergencyStock ? 'red' : 'yellow'}>
+                            {p.currentStock} uds
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block">Título da Reserva</label><input className="w-full p-5 bg-gray-50 border-0 rounded-2xl font-bold text-xl" value={editingEvent.title} onChange={e => setEditingEvent({...editingEvent, title: e.target.value})} placeholder="Título do evento" /></div>
             <div className="grid grid-cols-2 gap-4">
               <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block">Data</label><input type="date" className="w-full p-4 bg-gray-50 rounded-2xl border-0" value={editingEvent.date} onChange={e => setEditingEvent({...editingEvent, date: e.target.value})} /></div>
@@ -373,11 +405,11 @@ export default function App() {
             
             <div className="pt-6 border-t border-gray-100 space-y-6">
               <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                <p className="text-2xl font-bold text-emerald-950">Total: {editingEvent.totalCost.toFixed(2)}€</p>
+                <p className="text-2xl font-bold text-emerald-950">Total Estimado: {editingEvent.totalCost.toFixed(2)}€</p>
                 <div className="flex gap-2 w-full sm:w-auto">
                    <select className="flex-1 sm:flex-none p-3 bg-gray-50 rounded-2xl font-bold text-xs border-0" value={editingEvent.status} onChange={e => setEditingEvent({...editingEvent, status: e.target.value as any})}>
                     <option value="Programada">Reservada</option>
-                    <option value="Finalizada">Finalizada</option>
+                    <option value="Finalizada">Liquidada (Pecha Stock)</option>
                   </select>
                   <button type="button" onClick={() => saveEvent(editingEvent)} className="bg-emerald-600 text-white px-8 py-3 rounded-2xl font-bold shadow-xl hover:bg-emerald-700 transition">Actualizar</button>
                 </div>
@@ -489,13 +521,19 @@ interface DashboardViewProps {
 const DashboardView: React.FC<DashboardViewProps> = ({ transactions, events, inventory, members, currentUser }) => {
   const balance = transactions.reduce((acc, t) => acc + t.amount, 0);
   const critical = inventory.filter(p => p.currentStock <= p.minStock).length;
+  const emergency = inventory.filter(p => p.currentStock <= p.emergencyStock).length;
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <h1 className="text-3xl font-serif font-bold text-emerald-950">Boas tardes, {currentUser.fullName.split(' ')[0]}</h1>
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card className="bg-emerald-50 border-emerald-100"><Badge color="emerald">Tesourería</Badge><p className="text-xs text-emerald-800 font-bold mt-2">Saldo</p><h3 className="text-3xl font-bold text-emerald-950">{balance.toFixed(2)}€</h3></Card>
         <Card><Badge color="blue">Agenda</Badge><p className="text-xs text-gray-400 font-bold mt-2">Reservas</p><h3 className="text-3xl font-bold text-gray-900">{events.filter(e => e.status === 'Programada').length}</h3></Card>
-        <Card className={critical > 0 ? 'bg-red-50 border-red-100' : ''}><Badge color={critical > 0 ? 'red' : 'gray'}>Stock</Badge><p className="text-xs text-gray-400 font-bold mt-2">Críticos</p><h3 className="text-3xl font-bold text-gray-900">{critical}</h3></Card>
+        <Card className={emergency > 0 ? 'bg-red-50 border-red-100' : critical > 0 ? 'bg-orange-50 border-orange-100' : ''}>
+          <Badge color={emergency > 0 ? 'red' : critical > 0 ? 'orange' : 'gray'}>Economato</Badge>
+          <p className="text-xs text-gray-400 font-bold mt-2">Críticos / Emerxencia</p>
+          <h3 className="text-3xl font-bold text-gray-900">{critical} / <span className="text-red-600">{emergency}</span></h3>
+        </Card>
         <Card><Badge color="purple">Socias</Badge><p className="text-xs text-gray-400 font-bold mt-2">Membros</p><h3 className="text-3xl font-bold text-gray-900">{members.length}</h3></Card>
       </div>
       <Card className="h-64">
@@ -555,13 +593,39 @@ const InventoryView: React.FC<InventoryViewProps> = ({ inventory, canManage, set
       )}
     </div>
     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-      {inventory.map((item: Product) => (
-        <Card key={item.id} className={item.currentStock <= item.minStock ? 'border-red-200 bg-red-50/20' : ''} onClick={() => { setEditingProduct(item); setConfirmDeleteProduct(false); setIsProductModalOpen(true); }}>
-          <div className="flex justify-between items-start mb-4"><Badge color={item.category === 'Bebida' ? 'blue' : 'emerald'}>{item.category}</Badge><div className="text-right"><p className="text-[9px] font-bold text-gray-400 uppercase">Stock</p><p className={`font-black ${item.currentStock <= item.minStock ? 'text-red-600' : 'text-emerald-950'}`}>{item.currentStock} uds</p></div></div>
-          <h4 className="font-bold text-lg text-emerald-950 truncate mb-4 leading-tight">{item.name}</h4>
-          <div className="grid grid-cols-2 gap-4 py-4 border-t border-gray-50"><div><p className="text-[9px] font-bold text-gray-400 uppercase">Prezo</p><p className="font-black text-emerald-700 text-lg">{item.salePrice.toFixed(2)}€</p></div><div className="flex items-end justify-end"><Edit2 className="w-4 h-4 text-emerald-200"/></div></div>
-        </Card>
-      ))}
+      {inventory.map((item: Product) => {
+        const isEmergency = item.currentStock <= item.emergencyStock;
+        const isCritical = item.currentStock <= item.minStock;
+
+        return (
+          <Card 
+            key={item.id} 
+            className={`${isEmergency ? 'border-red-400 bg-red-50/30' : isCritical ? 'border-orange-200 bg-orange-50/20' : ''}`} 
+            onClick={() => { setEditingProduct(item); setConfirmDeleteProduct(false); setIsProductModalOpen(true); }}
+          >
+            <div className="flex justify-between items-start mb-4">
+              <Badge color={item.category === 'Bebida' ? 'blue' : 'emerald'}>{item.category}</Badge>
+              <div className="text-right">
+                <p className="text-[9px] font-bold text-gray-400 uppercase">Estado Stock</p>
+                <div className="flex items-center gap-1 justify-end">
+                  {isEmergency && <AlertCircle className="w-3 h-3 text-red-600 animate-pulse" />}
+                  <p className={`font-black ${isEmergency ? 'text-red-600' : isCritical ? 'text-orange-600' : 'text-emerald-950'}`}>
+                    {item.currentStock} uds
+                  </p>
+                </div>
+              </div>
+            </div>
+            <h4 className="font-bold text-lg text-emerald-950 truncate mb-4 leading-tight">{item.name}</h4>
+            <div className="pt-3 border-t border-gray-100 flex justify-between items-center">
+              <div>
+                <p className="text-[8px] font-black text-gray-400 uppercase">Limiares</p>
+                <p className="text-[10px] font-bold text-emerald-800">Min: {item.minStock} | Em: {item.emergencyStock}</p>
+              </div>
+              <p className="font-black text-emerald-700 text-sm">{item.salePrice.toFixed(2)}€</p>
+            </div>
+          </Card>
+        );
+      })}
     </div>
   </div>
 );
